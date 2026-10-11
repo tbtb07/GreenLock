@@ -1,4 +1,4 @@
-// Background service worker for Proof of Grass.
+// Background service worker for GreenLock.
 // Tracks daily time spent on distracting sites and blocks them once the
 // daily limit is reached, unless the server says the user is unlocked.
 //
@@ -26,7 +26,7 @@ const BLOCKED_PAGE_URL = chrome.runtime.getURL("blocked.html");
 const BADGE_GREEN = "#2e7d32"; // more than 5 minutes left
 const BADGE_ORANGE = "#f57c00"; // 1–5 minutes left
 const BADGE_RED = "#c62828"; // limit reached
-const BADGE_BLUE = "#1565c0"; // outdoor-break unlock active: minutes left in the unlock
+const BADGE_BLUE = "#1565c0"; // unlock active (outdoor break or emergency): minutes left in the unlock
 const BADGE_WARNING_SECONDS = 5 * 60;
 
 const WARNING_SECONDS = 5 * 60;
@@ -39,8 +39,9 @@ const WARNING_MESSAGE =
 const UNLOCK_ENDING_SECONDS = 5 * 60;
 const UNLOCK_ENDING_NOTIFICATION_ID = "unlock-ending-warning";
 const UNLOCK_ENDING_TITLE = "GreenLock — Unlock Ending Soon";
+// Emergency unlocks use the same warning, so don't say "outdoor break".
 const UNLOCK_ENDING_MESSAGE =
-  "Your outdoor-break unlock ends in 5 minutes.";
+  "Your unlock ends in 5 minutes.";
 
 // ---------- Helpers ----------
 
@@ -229,8 +230,12 @@ async function rememberUnlock(until) {
 // not today's limit has been reached. An outdoor break can unlock the user
 // before they ever hit the limit, and the badge/notification below both need
 // to notice that even though enforceLimit() has nothing to block yet.
-async function refreshUnlockStatus(reason) {
-  if (reason === "checkpoint") await isUnlocked();
+// Skipped when enforceLimit() is about to ask the server itself (over the
+// limit on a limited site), so a checkpoint never sends two /status requests.
+async function refreshUnlockStatus(result) {
+  const { reason, activeTab, totalSeconds, limit } = result;
+  const enforceWillAsk = Boolean(activeTab) && totalSeconds >= limit.seconds;
+  if (reason === "checkpoint" && !enforceWillAsk) await isUnlocked();
 }
 
 async function enforceLimit(result) {
@@ -377,7 +382,7 @@ function schedule(reason) {
     .then(() => sync(reason))
     .then(async (result) => {
       try {
-        await refreshUnlockStatus(reason);
+        await refreshUnlockStatus(result);
         await enforceLimit(result);
       } finally {
         await updateBadge(result);
@@ -402,7 +407,7 @@ async function ensureAlarm() {
 // ---------- Events ----------
 
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log("Proof of Grass installed:", details.reason);
+  console.log("GreenLock installed:", details.reason);
   ensureAlarm();
 
   // Only a genuine first install sets defaults and opens the setup page.

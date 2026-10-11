@@ -22,12 +22,15 @@ setInterval(updateClock, 1000);
 const API_BASE_URL = "http://localhost:5050";
 const STATUS_URL = `${API_BASE_URL}/status`;
 const EMERGENCY_URL = `${API_BASE_URL}/emergency`;
+const QR_URL = `${API_BASE_URL}/qr.png`;
 const POLL_MS = 3000;
 const STATUS_TIMEOUT_MS = 2500;
 const EMERGENCY_TIMEOUT_MS = 8000;
 const RETURN_DELAY_MS = 1200; // let the user read the message first
 
 const phoneLink = document.getElementById("phoneLink");
+const qrBox = document.getElementById("qrBox");
+const qrImage = document.getElementById("qrImage");
 const offlineNotice = document.getElementById("offlineNotice");
 const unlockedNotice = document.getElementById("unlockedNotice");
 const checkingText = document.getElementById("checkingText");
@@ -102,10 +105,25 @@ async function fetchStatus() {
   }
 }
 
+// The QR image is only requested once the server answers, so a page opened
+// while the server was down still gets it later. If it fails to load, the
+// next successful poll tries again.
+function hideQr() {
+  qrBox.hidden = true;
+  qrImage.removeAttribute("src");
+}
+qrImage.addEventListener("error", hideQr);
+
+function showQr() {
+  if (!qrImage.getAttribute("src")) qrImage.src = QR_URL;
+  qrBox.hidden = false;
+}
+
 function showStatus(status) {
   if (!status) {
     // Fail closed: stay blocked and explain how to start the server.
     phoneLink.hidden = true;
+    hideQr();
     offlineNotice.hidden = false;
     checkingText.textContent = "Can't reach the server. Retrying every 3 seconds…";
     return;
@@ -118,8 +136,10 @@ function showStatus(status) {
     phoneLink.href = phoneUrl.href;
     phoneLink.textContent = status.phone_url;
     phoneLink.hidden = false;
+    showQr();
   } else {
     phoneLink.hidden = true;
+    hideQr();
   }
 }
 
@@ -185,7 +205,7 @@ emergencyForm.addEventListener("submit", async (event) => {
     if (!data || typeof data !== "object") throw new Error("bad reply");
   } catch {
     showEmergencyMessage(
-      "Couldn't reach the server. Start it with python3 server/app.py.",
+      "Couldn't reach the server. Start it with .venv/bin/python server/app.py.",
       "error"
     );
     unlockButton.disabled = false;
