@@ -160,27 +160,52 @@ def get_settings():
         "break_minutes": settings["break_minutes"],
         "pending_break_minutes": settings.get("pending_break_minutes"),
         "pending_from": settings.get("pending_from"),
+        "unlock_minutes": settings["unlock_minutes"],
+        "pending_unlock_minutes": settings.get("pending_unlock_minutes"),
+        "pending_unlock_from": settings.get("pending_unlock_from"),
     })
 
 
 @app.route("/settings", methods=["POST"])
 def post_settings():
     data = request.get_json(silent=True) or {}
-    value = data.get("break_minutes")
+    has_break = "break_minutes" in data
+    has_unlock = "unlock_minutes" in data
 
-    if not isinstance(value, int) or isinstance(value, bool) or not (5 <= value <= 180):
+    if not has_break and not has_unlock:
+        return jsonify({"error": "Provide break_minutes and/or unlock_minutes"}), 400
+
+    break_value = data.get("break_minutes")
+    if has_break and (
+        not isinstance(break_value, int) or isinstance(break_value, bool) or not (5 <= break_value <= 180)
+    ):
         return jsonify({"error": "break_minutes must be a whole number between 5 and 180"}), 400
 
+    unlock_value = data.get("unlock_minutes")
+    if has_unlock and (
+        not isinstance(unlock_value, int) or isinstance(unlock_value, bool) or not (10 <= unlock_value <= 240)
+    ):
+        return jsonify({"error": "unlock_minutes must be a whole number between 10 and 240"}), 400
+
     settings = store.resolve_settings()
-    tomorrow = store.now() + timedelta(days=1)
-    settings["pending_break_minutes"] = value
-    settings["pending_from"] = store.date_key(tomorrow)
+    tomorrow = store.date_key(store.now() + timedelta(days=1))
+
+    if has_break:
+        settings["pending_break_minutes"] = break_value
+        settings["pending_from"] = tomorrow
+    if has_unlock:
+        settings["pending_unlock_minutes"] = unlock_value
+        settings["pending_unlock_from"] = tomorrow
+
     store.save_settings(settings)
 
     return jsonify({
         "break_minutes": settings["break_minutes"],
         "pending_break_minutes": settings["pending_break_minutes"],
         "pending_from": settings["pending_from"],
+        "unlock_minutes": settings["unlock_minutes"],
+        "pending_unlock_minutes": settings["pending_unlock_minutes"],
+        "pending_unlock_from": settings["pending_unlock_from"],
     })
 
 

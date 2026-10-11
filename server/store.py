@@ -15,6 +15,8 @@ DEFAULT_SETTINGS = {
     "password_hash": None,
     "pending_break_minutes": None,
     "pending_from": None,
+    "pending_unlock_minutes": None,
+    "pending_unlock_from": None,
 }
 
 DEFAULT_STATE = {
@@ -57,17 +59,38 @@ def load_settings() -> dict:
 
 
 def resolve_settings() -> dict:
-    """Loads settings and, if a pending break_minutes change's effective
-    date has arrived, promotes it to the real value and clears the
-    pending fields. Call this instead of load_settings() anywhere a
-    route needs the current settings."""
+    """Loads settings and, for each of break_minutes and unlock_minutes,
+    promotes a pending change to the real value and clears its pending
+    fields once its effective date has arrived. Call this instead of
+    load_settings() anywhere a route needs the current settings."""
     settings = load_settings()
-    pending = settings.get("pending_break_minutes")
-    pending_from = settings.get("pending_from")
-    if pending is not None and pending_from is not None and date_key(now()) >= pending_from:
-        settings["break_minutes"] = pending
+    changed = False
+
+    pending_break = settings.get("pending_break_minutes")
+    pending_break_from = settings.get("pending_from")
+    if (
+        pending_break is not None
+        and pending_break_from is not None
+        and date_key(now()) >= pending_break_from
+    ):
+        settings["break_minutes"] = pending_break
         settings["pending_break_minutes"] = None
         settings["pending_from"] = None
+        changed = True
+
+    pending_unlock = settings.get("pending_unlock_minutes")
+    pending_unlock_from = settings.get("pending_unlock_from")
+    if (
+        pending_unlock is not None
+        and pending_unlock_from is not None
+        and date_key(now()) >= pending_unlock_from
+    ):
+        settings["unlock_minutes"] = pending_unlock
+        settings["pending_unlock_minutes"] = None
+        settings["pending_unlock_from"] = None
+        changed = True
+
+    if changed:
         save_settings(settings)
     return settings
 

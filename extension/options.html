@@ -99,6 +99,9 @@
     #breakCurrent { font-weight: 600; }
     #breakPending { color: var(--accent); }
     #breakOffline { color: var(--error); }
+    #unlockCurrent { font-weight: 600; }
+    #unlockPending { color: var(--accent); }
+    #unlockOffline { color: var(--error); }
   </style>
 </head>
 <body>
@@ -144,6 +147,19 @@
       <p class="break-info" id="breakCurrent" aria-live="polite">Loading from the server…</p>
       <p class="break-info" id="breakPending" aria-live="polite" hidden></p>
       <p class="break-info" id="breakOffline" role="alert" hidden>Start the server to change break length.</p>
+    </section>
+
+    <section>
+      <h2>Unlock time after a break</h2>
+      <p class="hint">How long your sites stay unlocked after an outdoor break.</p>
+      <div class="limit">
+        <input type="number" id="unlockInput" min="10" max="240" step="1" aria-label="Unlock minutes" disabled>
+        <span>minutes</span>
+      </div>
+      <p class="error" id="unlockError" role="alert"></p>
+      <p class="break-info" id="unlockCurrent" aria-live="polite">Loading from the server…</p>
+      <p class="break-info" id="unlockPending" aria-live="polite" hidden></p>
+      <p class="break-info" id="unlockOffline" role="alert" hidden>Start the server to change unlock time.</p>
     </section>
 
     <div class="save">
