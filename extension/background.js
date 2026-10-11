@@ -31,14 +31,14 @@ const BADGE_WARNING_SECONDS = 5 * 60;
 
 const WARNING_SECONDS = 5 * 60;
 const WARNING_NOTIFICATION_ID = "five-minute-warning";
-const WARNING_TITLE = "Proof of Grass — 5 Minutes Left!";
+const WARNING_TITLE = "GreenLock — 5 Minutes Left!";
 const WARNING_MESSAGE =
   "You have 5 minutes of screen time remaining today. " +
   "Finish up before your websites are blocked!";
 
 const UNLOCK_ENDING_SECONDS = 5 * 60;
 const UNLOCK_ENDING_NOTIFICATION_ID = "unlock-ending-warning";
-const UNLOCK_ENDING_TITLE = "Proof of Grass — Unlock Ending Soon";
+const UNLOCK_ENDING_TITLE = "GreenLock — Unlock Ending Soon";
 const UNLOCK_ENDING_MESSAGE =
   "Your outdoor-break unlock ends in 5 minutes.";
 
