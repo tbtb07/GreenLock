@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="extension/icons/greenlock.png" alt="GreenLock logo" width="120">
-</p>
-
-# GreenLock
+![GreenLock](assets/banner.png)
 
 **A website blocker that makes you touch grass.**
 
