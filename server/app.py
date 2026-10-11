@@ -28,6 +28,10 @@ def get_phone_url() -> str:
     return f"http://{get_local_ip()}:5050"
 
 
+def is_valid_minutes(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -158,11 +162,13 @@ def get_settings():
     settings = store.resolve_settings()
     return jsonify({
         "break_minutes": settings["break_minutes"],
-        "pending_break_minutes": settings.get("pending_break_minutes"),
-        "pending_from": settings.get("pending_from"),
+        # Changes apply immediately now - these are always null. Kept in the
+        # response so clients that still read them don't break.
+        "pending_break_minutes": None,
+        "pending_from": None,
         "unlock_minutes": settings["unlock_minutes"],
-        "pending_unlock_minutes": settings.get("pending_unlock_minutes"),
-        "pending_unlock_from": settings.get("pending_unlock_from"),
+        "pending_unlock_minutes": None,
+        "pending_unlock_from": None,
     })
 
 
@@ -176,36 +182,32 @@ def post_settings():
         return jsonify({"error": "Provide break_minutes and/or unlock_minutes"}), 400
 
     break_value = data.get("break_minutes")
-    if has_break and (
-        not isinstance(break_value, int) or isinstance(break_value, bool) or not (5 <= break_value <= 180)
-    ):
-        return jsonify({"error": "break_minutes must be a whole number between 5 and 180"}), 400
+    if has_break and not is_valid_minutes(break_value):
+        return jsonify({"error": "break_minutes must be a whole number of 1 or more"}), 400
 
     unlock_value = data.get("unlock_minutes")
-    if has_unlock and (
-        not isinstance(unlock_value, int) or isinstance(unlock_value, bool) or not (10 <= unlock_value <= 240)
-    ):
-        return jsonify({"error": "unlock_minutes must be a whole number between 10 and 240"}), 400
+    if has_unlock and not is_valid_minutes(unlock_value):
+        return jsonify({"error": "unlock_minutes must be a whole number of 1 or more"}), 400
 
     settings = store.resolve_settings()
-    tomorrow = store.date_key(store.now() + timedelta(days=1))
 
+    # Applies immediately. A break already in progress keeps the length it
+    # started with (break_end() uses state["break_minutes_at_start"], a
+    # snapshot taken at break_start(), not this live setting).
     if has_break:
-        settings["pending_break_minutes"] = break_value
-        settings["pending_from"] = tomorrow
+        settings["break_minutes"] = break_value
     if has_unlock:
-        settings["pending_unlock_minutes"] = unlock_value
-        settings["pending_unlock_from"] = tomorrow
+        settings["unlock_minutes"] = unlock_value
 
     store.save_settings(settings)
 
     return jsonify({
         "break_minutes": settings["break_minutes"],
-        "pending_break_minutes": settings["pending_break_minutes"],
-        "pending_from": settings["pending_from"],
+        "pending_break_minutes": None,
+        "pending_from": None,
         "unlock_minutes": settings["unlock_minutes"],
-        "pending_unlock_minutes": settings["pending_unlock_minutes"],
-        "pending_unlock_from": settings["pending_unlock_from"],
+        "pending_unlock_minutes": None,
+        "pending_unlock_from": None,
     })
 
 

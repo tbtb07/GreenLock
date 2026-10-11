@@ -7,10 +7,6 @@
 
 const SETTINGS_URL = "http://localhost:5050/settings";
 const SERVER_TIMEOUT_MS = 3000;
-const MIN_BREAK_MINUTES = 5;
-const MAX_BREAK_MINUTES = 180;
-const MIN_UNLOCK_MINUTES = 10;
-const MAX_UNLOCK_MINUTES = 240;
 
 const defaultDomains = DEFAULT_SITES.map((s) => s.domain);
 
@@ -27,23 +23,21 @@ const saveStatus = document.getElementById("saveStatus");
 const breakInput = document.getElementById("breakInput");
 const breakError = document.getElementById("breakError");
 const breakCurrent = document.getElementById("breakCurrent");
-const breakPending = document.getElementById("breakPending");
 const breakOffline = document.getElementById("breakOffline");
 const unlockInput = document.getElementById("unlockInput");
 const unlockError = document.getElementById("unlockError");
 const unlockCurrent = document.getElementById("unlockCurrent");
-const unlockPending = document.getElementById("unlockPending");
 const unlockOffline = document.getElementById("unlockOffline");
 
 let customSites = [];
 
 // The server's settings as last loaded or saved - the full /settings
-// response (break_minutes, unlock_minutes and both pending fields), or null
-// if the server couldn't be reached. Both the break and unlock sections read
-// from this one object, since a single GET/POST /settings always returns both.
+// response (break_minutes and unlock_minutes), or null if the server
+// couldn't be reached. Both the break and unlock sections read from this
+// one object, since a single GET/POST /settings always returns both.
 let serverSettings = null;
 // True once the user types in the break/unlock box. Saving only sends that
-// field if its flag is set, so unrelated saves can't overwrite a pending change.
+// field if its flag is set, so unrelated saves can't resend an unchanged value.
 let breakEdited = false;
 let unlockEdited = false;
 
@@ -136,18 +130,15 @@ limitInput.addEventListener("input", () => {
 function readLimit() {
   const text = limitInput.value.trim();
   const minutes = Number(text);
-  if (!/^\d+$/.test(text) || !Number.isInteger(minutes)) {
-    limitError.textContent = "Enter a whole number of minutes.";
-    return null;
-  }
-  if (minutes < MIN_LIMIT_MINUTES || minutes > MAX_LIMIT_MINUTES) {
-    limitError.textContent = `Enter between ${MIN_LIMIT_MINUTES} and ${MAX_LIMIT_MINUTES} minutes.`;
+  if (!/^\d+$/.test(text) || !Number.isInteger(minutes) || minutes < 1) {
+    limitError.textContent = "Enter a whole number of minutes, 1 or more.";
     return null;
   }
   return minutes;
 }
 
 // ---------- Outdoor break length + unlock time (server settings) ----------
+// Both apply immediately on save - there's no pending/tomorrow state anymore.
 
 function isServerSettings(data) {
   return (
@@ -157,8 +148,8 @@ function isServerSettings(data) {
   );
 }
 
-// Returns the server's settings (break_minutes, unlock_minutes and both
-// pending fields), or null if it can't be reached.
+// Returns the server's settings (break_minutes and unlock_minutes),
+// or null if it can't be reached.
 async function fetchServerSettings() {
   try {
     const res = await fetch(SETTINGS_URL, {
@@ -206,50 +197,18 @@ async function postServerSettings(body) {
   return { error: data?.error || `The server rejected the change (HTTP ${res.status}).` };
 }
 
-// Shows today's length and any pending change, kept on separate lines so
-// it's clear which one applies today.
+// Shows the current length from the server.
 function renderBreak() {
   breakInput.disabled = serverSettings === null;
   breakOffline.hidden = serverSettings !== null;
-
-  if (!serverSettings) {
-    breakCurrent.textContent = "";
-    breakPending.hidden = true;
-    return;
-  }
-
-  breakCurrent.textContent = `Today: ${serverSettings.break_minutes} minutes.`;
-  const pending = serverSettings.pending_break_minutes;
-  // A pending value equal to today's length isn't a real change.
-  if (Number.isInteger(pending) && pending !== serverSettings.break_minutes) {
-    breakPending.textContent =
-      `Changes to ${pending} minutes on ${serverSettings.pending_from}. Takes effect tomorrow.`;
-    breakPending.hidden = false;
-  } else {
-    breakPending.hidden = true;
-  }
+  breakCurrent.textContent = serverSettings ? `Today: ${serverSettings.break_minutes} minutes.` : "";
 }
 
 // Same as renderBreak(), for the unlock-time section.
 function renderUnlock() {
   unlockInput.disabled = serverSettings === null;
   unlockOffline.hidden = serverSettings !== null;
-
-  if (!serverSettings) {
-    unlockCurrent.textContent = "";
-    unlockPending.hidden = true;
-    return;
-  }
-
-  unlockCurrent.textContent = `Today: ${serverSettings.unlock_minutes} minutes.`;
-  const pending = serverSettings.pending_unlock_minutes;
-  if (Number.isInteger(pending) && pending !== serverSettings.unlock_minutes) {
-    unlockPending.textContent =
-      `Changes to ${pending} minutes on ${serverSettings.pending_unlock_from}. Takes effect tomorrow.`;
-    unlockPending.hidden = false;
-  } else {
-    unlockPending.hidden = true;
-  }
+  unlockCurrent.textContent = serverSettings ? `Today: ${serverSettings.unlock_minutes} minutes.` : "";
 }
 
 // Fills both boxes with today's values from the server.
@@ -286,18 +245,13 @@ function readBreakChange() {
 
   const text = breakInput.value.trim();
   const minutes = Number(text);
-  if (!/^\d+$/.test(text) || !Number.isInteger(minutes)) {
-    breakError.textContent = "Enter a whole number of minutes.";
-    return INVALID;
-  }
-  if (minutes < MIN_BREAK_MINUTES || minutes > MAX_BREAK_MINUTES) {
-    breakError.textContent = `Enter between ${MIN_BREAK_MINUTES} and ${MAX_BREAK_MINUTES} minutes.`;
+  if (!/^\d+$/.test(text) || !Number.isInteger(minutes) || minutes < 1) {
+    breakError.textContent = "Enter a whole number of minutes, 1 or more.";
     return INVALID;
   }
 
-  // Only send if it differs from what will apply tomorrow.
-  const tomorrow = serverSettings.pending_break_minutes ?? serverSettings.break_minutes;
-  return minutes === tomorrow ? null : minutes;
+  // Only send if it actually changed.
+  return minutes === serverSettings.break_minutes ? null : minutes;
 }
 
 // Same as readBreakChange(), for the unlock-time box.
@@ -306,17 +260,12 @@ function readUnlockChange() {
 
   const text = unlockInput.value.trim();
   const minutes = Number(text);
-  if (!/^\d+$/.test(text) || !Number.isInteger(minutes)) {
-    unlockError.textContent = "Enter a whole number of minutes.";
-    return INVALID;
-  }
-  if (minutes < MIN_UNLOCK_MINUTES || minutes > MAX_UNLOCK_MINUTES) {
-    unlockError.textContent = `Enter between ${MIN_UNLOCK_MINUTES} and ${MAX_UNLOCK_MINUTES} minutes.`;
+  if (!/^\d+$/.test(text) || !Number.isInteger(minutes) || minutes < 1) {
+    unlockError.textContent = "Enter a whole number of minutes, 1 or more.";
     return INVALID;
   }
 
-  const tomorrow = serverSettings.pending_unlock_minutes ?? serverSettings.unlock_minutes;
-  return minutes === tomorrow ? null : minutes;
+  return minutes === serverSettings.unlock_minutes ? null : minutes;
 }
 
 // ---------- Save ----------
@@ -356,8 +305,7 @@ saveButton.addEventListener("click", async () => {
   saveButton.disabled = true;
   setStatus("Saving to the server…", "unsaved");
 
-  // Both changes are sent (as separate requests - each field has its own
-  // tomorrow-only effective date) so one failing doesn't block the other.
+  // Sent as two separate requests so one failing doesn't block the other.
   const failed = [];
 
   if (breakChange !== null) {

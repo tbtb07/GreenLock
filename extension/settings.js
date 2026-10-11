@@ -16,9 +16,6 @@ const DEFAULT_SETTINGS = {
   dailyLimitMinutes: 60,
 };
 
-const MIN_LIMIT_MINUTES = 1;
-const MAX_LIMIT_MINUTES = 24 * 60;
-
 // Turns "https://www.Example.com/page", "www.example.com" or "example.com/"
 // into "example.com". Returns null if it isn't a valid domain.
 function normalizeDomain(input) {

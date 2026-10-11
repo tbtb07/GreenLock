@@ -59,40 +59,12 @@ def load_settings() -> dict:
 
 
 def resolve_settings() -> dict:
-    """Loads settings and, for each of break_minutes and unlock_minutes,
-    promotes a pending change to the real value and clears its pending
-    fields once its effective date has arrived. Call this instead of
-    load_settings() anywhere a route needs the current settings."""
-    settings = load_settings()
-    changed = False
-
-    pending_break = settings.get("pending_break_minutes")
-    pending_break_from = settings.get("pending_from")
-    if (
-        pending_break is not None
-        and pending_break_from is not None
-        and date_key(now()) >= pending_break_from
-    ):
-        settings["break_minutes"] = pending_break
-        settings["pending_break_minutes"] = None
-        settings["pending_from"] = None
-        changed = True
-
-    pending_unlock = settings.get("pending_unlock_minutes")
-    pending_unlock_from = settings.get("pending_unlock_from")
-    if (
-        pending_unlock is not None
-        and pending_unlock_from is not None
-        and date_key(now()) >= pending_unlock_from
-    ):
-        settings["unlock_minutes"] = pending_unlock
-        settings["pending_unlock_minutes"] = None
-        settings["pending_unlock_from"] = None
-        changed = True
-
-    if changed:
-        save_settings(settings)
-    return settings
+    """Loads settings. break_minutes and unlock_minutes changes apply
+    immediately now, so this is a plain load - kept as its own function
+    (rather than switching callers to load_settings()) since routes already
+    call it and it's the natural place to reintroduce promotion logic if a
+    future change brings back delayed effective dates."""
+    return load_settings()
 
 
 def load_state() -> dict:
