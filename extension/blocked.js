@@ -3,6 +3,22 @@
 // The emergency password is only ever held in the input box and the one
 // POST request. It is never stored or logged.
 
+// ---------- Live clock (display only, lock-screen look) ----------
+
+const clockTime = document.getElementById("clock");
+const clockDate = document.getElementById("clockDate");
+
+function updateClock() {
+  const now = new Date();
+  if (clockTime) clockTime.textContent = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (clockDate) {
+    clockDate.textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  }
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+
 const API_BASE_URL = "http://localhost:5050";
 const STATUS_URL = `${API_BASE_URL}/status`;
 const EMERGENCY_URL = `${API_BASE_URL}/emergency`;
