@@ -2,13 +2,9 @@
 
 **A website blocker that makes you touch grass.**
 
+Built for the DEV Hacktoberfest 2026 Open-Source AI Challenge (Week 1: Touch Grass).
+
 GreenLock pairs a Chrome extension with a small Flask server running on the same computer. The extension tracks your time on distracting websites and blocks them once you reach your daily limit. To get them back, you take an outdoor break: photograph the outdoors with your phone, stay outside for the required time, then take another photo. Your phone sends each photo over Wi-Fi to the Flask server on your computer, where a Gemma 3 vision model running locally in Ollama checks it. No cloud service is involved.
-
-## Demo
-
-> 🎬 **Demo video coming soon.**
->
-> <!-- Replace this line with a link or embed, e.g. [![GreenLock demo](thumbnail.png)](https://youtu.be/...) -->
 
 ## Key features
 
@@ -61,6 +57,7 @@ requirements.txt      Python dependencies
   ```bash
   ollama pull gemma3:4b
   ```
+  This is about a **3 GB download** and uses roughly **3-4 GB of RAM** while loaded. 8 GB of RAM is the minimum, 16 GB is recommended. Quit Ollama when you're not using GreenLock to free that memory back up.
 - **Google Chrome** (or another Chromium browser that supports unpacked extensions)
 - **One computer for both the server and Chrome.** The extension only talks to `http://localhost:5050`, so the Flask server must run on the same computer as the browser where the extension is installed.
 - A **phone on the same Wi-Fi network** as that computer
@@ -71,17 +68,30 @@ requirements.txt      Python dependencies
 
 From the repository root:
 
+**macOS / Linux**
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+```
+
+**Windows**
+```bat
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
 ```
 
 This installs Flask, ollama, Pillow, pillow-heif, qrcode and Werkzeug into a local virtual environment.
 
 ### 2. (Recommended) Set an emergency password
 
+**macOS / Linux**
 ```bash
 .venv/bin/python server/set_password.py
+```
+
+**Windows**
+```bat
+.venv\Scripts\python server/set_password.py
 ```
 
 Until a password is set, every emergency unlock attempt is rejected.
@@ -90,8 +100,14 @@ Until a password is set, every emergency unlock attempt is rejected.
 
 Run the server on **the same computer as Chrome**. The extension looks for it at `localhost:5050` and won't find a server on another machine. Make sure Ollama is running, then from the repository root:
 
+**macOS / Linux**
 ```bash
 .venv/bin/python server/app.py
+```
+
+**Windows**
+```bat
+.venv\Scripts\python server/app.py
 ```
 
 On startup the server sends Gemma a small warm-up request so the model is already loaded when your first photo arrives. It then listens on port **5050** on all network interfaces, so your phone can reach it. The first run creates `server/data/settings.json` and `server/data/state.json` from the defaults. Both files are git-ignored.
@@ -156,6 +172,30 @@ Changes **apply immediately** when you click **Save Settings**. The page shows t
 ### Emergency unlock
 
 Emergency unlock length (`emergency_minutes`, default 15) and uses per day (`emergency_uses_per_day`, default 2) are set in `server/data/settings.json`. The password is set with `server/set_password.py` (see above).
+
+## Known limitations
+
+- **Only blocks sites in Chrome on this computer** — not apps on your phone, or other browsers/devices.
+- **School, work and public Wi-Fi often block phone-to-computer connections.** Use your home Wi-Fi for the phone handoff to work reliably.
+- **Gemma can sometimes be fooled** by a photo of an outdoor picture or video shown on a screen.
+- **Settings apply immediately** with no lockout on changing them, so GreenLock is a nudge, not a prison — anyone with access to the computer can just turn the limit off.
+
+## Troubleshooting
+
+**Phone page won't load**
+- Make sure your phone and computer are on the **same Wi-Fi network**.
+- On macOS, the first time the server starts, you may get an incoming-connections permission prompt — click **Allow**.
+- Avoid school/work/public Wi-Fi (see Known limitations above); try a home network instead.
+
+**"Port 5050 in use" when starting the server**
+- Another copy of the server (or something else) is already using port 5050. Stop it first, e.g. on macOS/Linux:
+  ```bash
+  lsof -ti :5050 | xargs kill
+  ```
+
+**"Can't reach the server" on the lock screen**
+- Make sure **Ollama** is running.
+- Make sure the Flask **server** is running (see Installation, step 3) and that the terminal running it is still open.
 
 ## Contributors
 
