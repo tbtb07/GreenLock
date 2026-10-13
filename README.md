@@ -6,6 +6,10 @@ Built for the DEV Hacktoberfest 2026 Open-Source AI Challenge (Week 1: Touch Gra
 
 GreenLock pairs a Chrome extension with a small Flask server running on the same computer. The extension tracks your time on distracting websites and blocks them once you reach your daily limit. To get them back, you take an outdoor break: photograph the outdoors with your phone, stay outside for the required time, then take another photo. Your phone sends each photo over Wi-Fi to the Flask server on your computer, where a Gemma 3 vision model running locally in Ollama checks it. No cloud service is involved.
 
+## Demo
+
+[![GreenLock demo](https://img.youtube.com/vi/2rNZ8U92320/maxresdefault.jpg)](https://youtu.be/2rNZ8U92320)
+
 ## Key features
 
 - **Daily time limit** shared across all the sites you choose to limit (default: 60 minutes per day).
