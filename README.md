@@ -8,7 +8,6 @@ GreenLock pairs a Chrome extension with a small Flask server running on the same
 
 ## Demo
 
-[![Watch the GreenLock demo](assets/dev-cover.png)](https://youtu.be/2rNZ8U92320)
 **[▶ Watch the demo on YouTube](https://youtu.be/2rNZ8U92320)**
 
 ## Key features
